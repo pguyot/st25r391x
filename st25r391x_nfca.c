@@ -129,7 +129,7 @@ static s32 st25r391x_nfca_rats(struct st25r391x_i2c_data *priv, struct nfc_tag_i
     // Perform RATS
     buffer[0] = 0xE0;
     buffer[1] = 0x80;
-    result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 1);
+    result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 1, 1);
     if (result >= 0) {
         if (result == buffer[0] + 2) {
             tag_info->ats_len = buffer[0] - 1;
@@ -198,7 +198,7 @@ static s32 st25r391x_nfca_do_select(struct st25r391x_i2c_data *priv, struct nfc_
             buffer[4] = uid[(cascade_level - 1) * 5 + 2];
             buffer[5] = uid[(cascade_level - 1) * 5 + 3];
             buffer[6] = uid[(cascade_level - 1) * 5 + 4];
-            result = st25r391x_transceive_frame(i2c, ints, buffer, 7, buffer, sizeof(buffer), 1);
+            result = st25r391x_transceive_frame(i2c, ints, buffer, 7, buffer, sizeof(buffer), 1, 1);
             if (result < 0) break;
 
             if (buffer[0] & 0x04) {
@@ -428,7 +428,7 @@ void st25r391x_nfca_select(struct st25r391x_i2c_data *priv) {
 
 // Transceive frame with no CRC and no Parity.
 // Returns the number of bits
-s32 st25r391x_transceive_frame_raw_iso14443a(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_bits_count, u8* rx_buf, u16 rx_buf_len) {
+s32 st25r391x_transceive_frame_raw_iso14443a(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_bits_count, u8* rx_buf, u16 rx_buf_len, int receive) {
     s32 result;
     u8 fifo_flags;
     u16 tx_bytes_count = tx_bits_count >> 3;
@@ -439,43 +439,48 @@ s32 st25r391x_transceive_frame_raw_iso14443a(struct i2c_client* i2c, struct st25
         result = st25r391x_direct_command(i2c, ST25R391X_CLEAR_FIFO_COMMAND_CODE);
         if (result < 0) break;
 
-        result = st25r391x_load_fifo(i2c, tx_bytes_count, tx_buf);
-        if (result < 0) {
-            struct device *dev = &i2c->dev;
-            dev_err(dev, "Failed to load FIFO %d", result);
-            break;
+        if (tx_bytes_count > 0) {
+            result = st25r391x_load_fifo(i2c, tx_bytes_count, tx_buf);
+            if (result < 0) {
+                struct device *dev = &i2c->dev;
+                dev_err(dev, "Failed to load FIFO %d", result);
+                break;
+            }
+
+            result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_bits_count >> 8, tx_bits_count & 0xFF);
+            if (result < 0) break;
+
+            result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+            if (result < 0) break;
+
+            result = st25r391x_write_register_byte_check(i2c, ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER, ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_tx_par | ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_rx_par | ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_antcl);
+            if (result < 0) break;
+
+            st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0);
+
+            result = st25r391x_direct_command(i2c, ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE);
+            if (result < 0) break;
+
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 1000, 5);
+            if (result < 0) break;
         }
 
-        result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_bits_count >> 8, tx_bits_count & 0xFF);
-        if (result < 0) break;
-
-        result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
-        if (result < 0) break;
-
-        result = st25r391x_write_register_byte_check(i2c, ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER, ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_tx_par | ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_rx_par | ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_antcl);
-        if (result < 0) break;
-
-        st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0);
-
-        result = st25r391x_direct_command(i2c, ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE);
-        if (result < 0) break;
-
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        // Receive data
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, &fifo_flags);
-        if (result < 0) {
-            struct device *dev = &i2c->dev;
-            dev_err(dev, "Read FIFO failed");
-            break;
-        }
-        result = result << 3;
-        if (fifo_flags & 0x0E) {
-            result = result - 8 + ((fifo_flags & 0x0E) >> 1);
+        if (receive) {
+            // Receive data
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, 1000, 5);
+            if (result < 0) break;
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 1000, 5);
+            if (result < 0) break;
+            result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, &fifo_flags);
+            if (result < 0) {
+                struct device *dev = &i2c->dev;
+                dev_err(dev, "Read FIFO failed");
+                break;
+            }
+            result = result << 3;
+            if (fifo_flags & 0x0E) {
+                result = result - 8 + ((fifo_flags & 0x0E) >> 1);
+            }
         }
     } while (0);
 

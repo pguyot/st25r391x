@@ -28,6 +28,6 @@ struct st25r391x_i2c_data;
 
 void st25r391x_nfca_discover(struct st25r391x_i2c_data *priv);
 void st25r391x_nfca_select(struct st25r391x_i2c_data *priv);
-s32 st25r391x_transceive_frame_raw_iso14443a(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_bits_count, u8* rx_buf, u16 rx_buf_len);
+s32 st25r391x_transceive_frame_raw_iso14443a(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_bits_count, u8* rx_buf, u16 rx_buf_len, int receive);
 
 #endif

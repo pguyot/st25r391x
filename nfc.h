@@ -236,6 +236,9 @@ struct nfc_select_tag_message_payload {
 // Transceive frame to selected tag
 // Only available in selected mode (ignored otherwise)
 // Followed by a response message from device in case of success or failure.
+// If flag NFC_TRANSCEIVE_FLAGS_TX_ONLY is used, there also is an answer with
+// rx_count equal to 0.
+// If tx_count is 0, no frame is transmitted.
 #define NFC_TRANSCEIVE_FRAME_REQUEST_MESSAGE_TYPE 8
 /// Payload length is variable
 
@@ -248,6 +251,7 @@ struct nfc_transceive_frame_request_message_payload {
 #define NFC_TRANSCEIVE_FLAGS_NOCRC      1
 #define NFC_TRANSCEIVE_FLAGS_RAW        3       // No CRC and no Parity
 #define NFC_TRANSCEIVE_FLAGS_BITS       4       // TX and RX partial bits, tx_count in bits
+#define NFC_TRANSCEIVE_FLAGS_TX_ONLY    8       // Do not receive any answer (only transmit)
 #define NFC_TRANSCEIVE_FLAGS_ERROR      128     // Transceive failed, chip is unselected and field is turned off.
 
 // Driver => Client

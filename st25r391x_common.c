@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA
  */
- 
+
 #include <linux/i2c.h>
 #include <linux/types.h>
 
@@ -147,47 +147,52 @@ s32 st25r391x_turn_field_off(struct st25r391x_i2c_data *priv) {
     return result;
 }
 
-s32 st25r391x_transceive_frame(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_count, u8* rx_buf, u16 rx_buf_len, int crc) {
+s32 st25r391x_transceive_frame(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_count, u8* rx_buf, u16 rx_buf_len, int crc, int receive) {
     s32 result;
     do {
         result = st25r391x_direct_command(i2c, ST25R391X_CLEAR_FIFO_COMMAND_CODE);
         if (result < 0) break;
 
-        result = st25r391x_load_fifo(i2c, tx_count, tx_buf);
-        if (result < 0) {
-            struct device *dev = &i2c->dev;
-            dev_err(dev, "Failed to load FIFO %d", result);
-            break;
+        if (tx_count > 0) {
+            result = st25r391x_load_fifo(i2c, tx_count, tx_buf);
+            if (result < 0) {
+                struct device *dev = &i2c->dev;
+                dev_err(dev, "Failed to load FIFO %d", result);
+                break;
+            }
+
+            result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_count >> 5, tx_count << 3);
+            if (result < 0) break;
+
+            if (crc) {
+                result = st25r391x_clear_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+                if (result < 0) break;
+            } else {
+                result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+                if (result < 0) break;
+            }
+
+            st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0);
+
+            result = st25r391x_direct_command(i2c, crc ? ST25R391X_TRANSMIT_WITH_CRC_COMMAND_CODE : ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE);
+            if (result < 0) break;
+
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 1000, 5);
+            if (result < 0) break;
         }
 
-        result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_count >> 5, tx_count << 3);
-        if (result < 0) break;
-
-        if (crc) {
-            result = st25r391x_clear_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+        if (receive) {
+            // Receive data
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, 1000, 5);
             if (result < 0) break;
-        } else {
-            result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 1000, 5);
             if (result < 0) break;
-        }
-
-        st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0);
-
-        result = st25r391x_direct_command(i2c, crc ? ST25R391X_TRANSMIT_WITH_CRC_COMMAND_CODE : ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE);
-        if (result < 0) break;
-
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        // Receive data
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 1000, 5);
-        if (result < 0) break;
-        result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, NULL);
-        if (result < 0) {
-            struct device *dev = &i2c->dev;
-            dev_err(dev, "Read FIFO failed");
-            break;
+            result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, NULL);
+            if (result < 0) {
+                struct device *dev = &i2c->dev;
+                dev_err(dev, "Read FIFO failed");
+                break;
+            }
         }
     } while (0);
 

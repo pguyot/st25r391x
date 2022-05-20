@@ -108,7 +108,7 @@ void st25r391x_process_selected_tag(struct st25r391x_i2c_data *priv, const struc
     u8 uid_len;
     struct nfc_message_header detected_tag_message_header;
     int select_tag = priv->mode == mode_select || priv->mode_params.discover.flags & NFC_DISCOVER_FLAGS_SELECT;
-    
+
     switch(tag_payload->tag_type) {
         case NFC_TAG_TYPE_ISO14443A:
         case NFC_TAG_TYPE_ISO14443A_T2T:
@@ -138,7 +138,7 @@ void st25r391x_process_selected_tag(struct st25r391x_i2c_data *priv, const struc
             payload_len = sizeof(tag_payload->tag_type) + sizeof(tag_payload->tag_info.st25tb);
             break;
     }
-    
+
     detected_tag_message_header.message_type = select_tag ? NFC_SELECTED_TAG_MESSAGE_TYPE : NFC_DETECTED_TAG_MESSAGE_TYPE;
     detected_tag_message_header.payload_length = payload_len;
     st25r391x_write_to_device(priv, (const u8*) &detected_tag_message_header, sizeof(detected_tag_message_header));
@@ -230,7 +230,7 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
     if ((flags == (NFC_TRANSCEIVE_FLAGS_BITS | NFC_TRANSCEIVE_FLAGS_RAW))
         && ((tag_type >= NFC_TAG_TYPE_ISO14443A)
         || (tag_type < NFC_TAG_TYPE_ISO14443B))) {
-        result = st25r391x_transceive_frame_raw_iso14443a(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data));
+        result = st25r391x_transceive_frame_raw_iso14443a(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
         if (result > 0) {
             rx_data_count = result >> 3;
             if (result & 0x07) {
@@ -238,7 +238,7 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
             }
         }
     } else if ((flags &~ NFC_TRANSCEIVE_FLAGS_NOCRC) == 0) {
-        result = st25r391x_transceive_frame(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_NOCRC));
+        result = st25r391x_transceive_frame(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_NOCRC), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
         if (result > 0) {
             rx_data_count = result;
         }
