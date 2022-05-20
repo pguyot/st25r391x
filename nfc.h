@@ -105,8 +105,7 @@ struct nfc_discover_mode_request_message_payload {
 #define NFC_TAG_TYPE_ISO14443A_T2T      2
 #define NFC_TAG_TYPE_MIFARE_CLASSIC     3
 #define NFC_TAG_TYPE_ISO14443A_NFCDEP   4
-// Every array of bytes (atqa, uid, etc.) is stored in protocol order, i.e.
-// little endian.
+// Every array of bytes (atqa, uid, etc.) is stored in protocol order.
 struct nfc_tag_info_iso14443a {
     uint8_t atqa[2];
     uint8_t sak;
