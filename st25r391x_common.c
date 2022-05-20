@@ -97,11 +97,12 @@ static s32 st25r391x_turn_oscillator_off(struct i2c_client* i2c) {
 s32 st25r391x_turn_field_on(struct st25r391x_i2c_data *priv) {
     struct i2c_client *i2c = priv->i2c;
     struct st25r391x_interrupts *ints = &priv->ints;
+    s32 result;
 
     // Set this bit on now to always try to turn it off when leaving.
     priv->field_on = 1;
 
-    s32 result = st25r391x_turn_oscillator_on(i2c, ints);
+    result = st25r391x_turn_oscillator_on(i2c, ints);
     if (result < 0) {
         dev_err(priv->device, "st25r391x_turn_field_on: Failed to turn oscillator on: %d", result);
         return result;
