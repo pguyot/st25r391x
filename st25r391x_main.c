@@ -291,7 +291,7 @@ static void st25r391x_do_poll(struct work_struct *work) {
     wake_up_interruptible(&priv->write_wq);
     mutex_unlock(&priv->command_lock);
 
-    if (priv->field_on && (priv->mode == mode_idle || priv->mode == mode_discover)) {
+    if (priv->field_on && (priv->mode == mode_idle || priv->mode == mode_select || priv->mode == mode_discover)) {
         (void) st25r391x_turn_field_off(priv);
     }
 
