@@ -448,7 +448,20 @@ static void st25r391x_write_process_packet(struct st25r391x_i2c_data *priv, u16 
         case NFC_TRANSCEIVE_FRAME_REQUEST_MESSAGE_TYPE: {
             const struct nfc_transceive_frame_request_message_payload* payload;
             if (priv->mode != mode_selected) {
-                dev_err(priv->device, "Unexpected message, tag must be selected first");
+                struct nfc_message_header response_message_header;
+                struct nfc_message_transceive_frame_response_payload payload;
+
+                dev_err(priv->device, "Unexpected message, tag must be selected first (mode=%d)", priv->mode);
+                payload_len = offsetof(struct nfc_message_transceive_frame_response_payload, rx_data);
+                response_message_header.message_type = NFC_TRANSCEIVE_FRAME_RESPONSE_MESSAGE_TYPE;
+                response_message_header.payload_length = payload_len;
+                st25r391x_write_to_device(priv, (const u8*) &response_message_header, sizeof(response_message_header));
+                payload.flags = NFC_TRANSCEIVE_FLAGS_ERROR;
+                st25r391x_write_to_device(priv, (const u8*) &payload, payload_len);
+
+                if (priv->mode != mode_idle) {
+                    st25r391x_transition_to_idle(priv);
+                }
                 break;
             }
             payload = (const struct nfc_transceive_frame_request_message_payload*) (priv->write_buffer + sizeof(struct nfc_message_header));
