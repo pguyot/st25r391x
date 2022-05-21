@@ -248,11 +248,11 @@ struct nfc_transceive_frame_request_message_payload {
     uint8_t tx_data[512];       // could be less
 } __attribute__((packed));
 
-#define NFC_TRANSCEIVE_FLAGS_NOCRC      1
-#define NFC_TRANSCEIVE_FLAGS_RAW        3       // No CRC and no Parity
-#define NFC_TRANSCEIVE_FLAGS_BITS       4       // TX and RX partial bits, tx_count in bits
-#define NFC_TRANSCEIVE_FLAGS_TX_ONLY    8       // Do not receive any answer (only transmit)
-#define NFC_TRANSCEIVE_FLAGS_ERROR      128     // Transceive failed, chip is unselected and field is turned off.
+#define NFC_TRANSCEIVE_FLAGS_NOCRC      1 << 0
+#define NFC_TRANSCEIVE_FLAGS_NOPARITY   1 << 1
+#define NFC_TRANSCEIVE_FLAGS_BITS       1 << 2  // TX and RX partial bits, tx_count in bits
+#define NFC_TRANSCEIVE_FLAGS_TX_ONLY    1 << 3  // Do not receive any answer (only transmit)
+#define NFC_TRANSCEIVE_FLAGS_ERROR      1 << 7  // Transceive failed, chip is unselected and field is turned off.
 
 // Driver => Client
 #define NFC_TRANSCEIVE_FRAME_RESPONSE_MESSAGE_TYPE 9

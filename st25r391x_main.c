@@ -227,7 +227,10 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
     s32 result;
 
     memset(&payload, 0, sizeof(payload));
-    if ((flags == (NFC_TRANSCEIVE_FLAGS_BITS | NFC_TRANSCEIVE_FLAGS_RAW))
+    // No parity is only supported with ISO-14443-A for now and currently implies no CRC and bits
+    if ((flags & NFC_TRANSCEIVE_FLAGS_NOPARITY)
+        && (flags & NFC_TRANSCEIVE_FLAGS_BITS)
+        && (flags & NFC_TRANSCEIVE_FLAGS_NOCRC)
         && ((tag_type >= NFC_TAG_TYPE_ISO14443A)
         || (tag_type < NFC_TAG_TYPE_ISO14443B))) {
         result = st25r391x_transceive_frame_raw_iso14443a(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
@@ -237,7 +240,7 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
                 rx_data_count++;
             }
         }
-    } else if ((flags &~ NFC_TRANSCEIVE_FLAGS_NOCRC) == 0) {
+    } else if (!(flags & NFC_TRANSCEIVE_FLAGS_BITS) && !(flags & NFC_TRANSCEIVE_FLAGS_NOPARITY)) {
         result = st25r391x_transceive_frame(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_NOCRC), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
         if (result > 0) {
             rx_data_count = result;
@@ -295,7 +298,7 @@ static void st25r391x_do_poll(struct work_struct *work) {
         (void) st25r391x_turn_field_off(priv);
     }
 
-    if (priv->mode == mode_discover) {
+    if (priv->mode == mode_discover || priv->mode == mode_select) {
         restart_polling_timer(priv);
     }
 }
@@ -437,6 +440,8 @@ static void st25r391x_write_process_packet(struct st25r391x_i2c_data *priv, u16 
             } else if (payload->tag_type == NFC_TAG_TYPE_ST25TB) {
                 priv->mode_params.select.tag_id.uid_len = sizeof(payload->tag_id.st25tb.uid);
                 memcpy(priv->mode_params.select.tag_id.uid, (const void*) payload->tag_id.st25tb.uid, sizeof(payload->tag_id.st25tb.uid));
+            } else {
+                dev_err(priv->device, "NFC_SELECT_TAG_MESSAGE_TYPE: unexpected tag type %d", payload->tag_type);
             }
             if (priv->mode != mode_select) {
                 priv->mode = mode_select;
