@@ -76,6 +76,7 @@ struct st25r391x_transceive_frame_params {
     struct st25r391x_tag_id tag_id;
     u16 tx_count;
     u8 flags;
+    u16 rx_timeout;
     u8 tx_data[512];
 };
 

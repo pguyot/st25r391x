@@ -22,6 +22,7 @@
 #include "st25r391x_interrupts.h"
 
 #include <linux/delay.h>
+#include <linux/timekeeping.h>
 
 #include "st25r391x_commands.h"
 #include "st25r391x_registers.h"
@@ -33,8 +34,9 @@ void st25r391x_clear_interrupts(struct st25r391x_interrupts* ints, u8 main_mask,
     ints->flags[ST25R391X_PASSIVE_TARGET_INTERRUPT_REGISTER - ST25R391X_MAIN_INTERRUPT_REGISTER] &= ~ passive_target_mask;
 }
 
-int st25r391x_polling_wait_for_interrupt_bit(struct i2c_client *i2c, struct st25r391x_interrupts* ints, u8 main_mask, u8 timer_and_nfc_mask, u8 error_and_wakeup_mask, u8 passive_target_mask, int sleep_min, int max_loop) {
-    int loop_count = 0;
+int st25r391x_polling_wait_for_interrupt_bit(struct i2c_client *i2c, struct st25r391x_interrupts* ints, u8 main_mask, u8 timer_and_nfc_mask, u8 error_and_wakeup_mask, u8 passive_target_mask, u16 timeout_usec) {
+    int sleep_min = timeout_usec >= 2000 ? 1000 : timeout_usec / 2;
+    u64 timeout_ktime_ns = ktime_get_ns() + (timeout_usec * 1000);
     u8 masks[4];
     u8 base_addr = ST25R391X_MAIN_INTERRUPT_REGISTER;
     u8 count = 4;
@@ -70,17 +72,12 @@ int st25r391x_polling_wait_for_interrupt_bit(struct i2c_client *i2c, struct st25
                 return 0;
             }
         }
-        if (loop_count > 0) {
-            usleep_range(sleep_min, sleep_min + 500);
-        }
-        result = i2c_smbus_read_i2c_block_data(i2c, (base_addr + start_index) | ST25R391X_REGISTER_READ_MODE, count, ints->flags + start_index);
-        if (result < 0) {
-            // I2C bus is not ready yet...
-            continue;
-        } else {
-            loop_count++;
-        }
-    } while (loop_count < max_loop);
+        usleep_range(sleep_min, sleep_min * 2);
+        do {
+            // Busy loop on bus
+            result = i2c_smbus_read_i2c_block_data(i2c, (base_addr + start_index) | ST25R391X_REGISTER_READ_MODE, count, ints->flags + start_index);
+        } while (result < 0 && ktime_get_ns() < timeout_ktime_ns);
+    } while (ktime_get_ns() < timeout_ktime_ns);
 
     return -1;
 }

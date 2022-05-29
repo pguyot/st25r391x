@@ -19,6 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA
  */
 
+#include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/types.h>
 
@@ -41,15 +42,13 @@ static s32 st25r391x_perform_collision_avoidance(struct i2c_client* i2c, struct 
     if (result < 0) {
         return result;
     }
-    result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, 0, ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_cac | ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_cat, 0, 0, 1000, 20);
+    result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, 0, ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_cac | ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_cat, 0, 0, 20000);  // TODO: check timeout
     if (result < 0) {
-        struct device *dev = &i2c->dev;
-        dev_err(dev, "st25r391x_perform_collision_avoidance: time out waiting for interrupt bits");
+        dev_err(&i2c->dev, "st25r391x_perform_collision_avoidance: time out waiting for interrupt bits");
         return result;
     }
     if (result & ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_cac) {
-        struct device *dev = &i2c->dev;
-        dev_err(dev, "Collision was detected");
+        dev_err(&i2c->dev, "st25r391x_perform_collision_avoidance: collision was detected");
         return -1;
     }
 
@@ -57,7 +56,6 @@ static s32 st25r391x_perform_collision_avoidance(struct i2c_client* i2c, struct 
 }
 
 static s32 st25r391x_turn_oscillator_on(struct i2c_client* i2c, struct st25r391x_interrupts* ints) {
-    struct device *dev = &i2c->dev;
     s32 result;
 
     // Enable oscillator
@@ -65,12 +63,14 @@ static s32 st25r391x_turn_oscillator_on(struct i2c_client* i2c, struct st25r391x
         st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_osc, 0, 0, 0);
         result = st25r391x_write_register_byte_check(i2c, ST25R391X_OPERATION_CONTROL_REGISTER, ST25R391X_OPERATION_CONTROL_REGISTER_en | ST25R391X_OPERATION_CONTROL_REGISTER_en_fd_c1 | ST25R391X_OPERATION_CONTROL_REGISTER_en_fd_c0);
         if (result < 0) break;
-        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_osc, 0, 0, 0, 100, 5);
+        // "Since the start-up time varies with crystal type, temperature and other parameters, the oscillator amplitude is observed and an interrupt is generated when stable oscillator operation is reached."
+        // page 17/157
+        result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_osc, 0, 0, 0, 5000);
         if (result < 0) break;
         result = st25r391x_read_register_byte(i2c, ST25R391X_AUXILIARY_DISPLAY_REGISTER);
         if (result < 0) break;
         if ((result & ST25R391X_AUXILIARY_DISPLAY_REGISTER_osc_ok) == 0) {
-            dev_err(dev, "Auxiliary display register says oscillator is not ok: %d", result);
+            dev_err(&i2c->dev, "st25r391x_turn_oscillator_on: Auxiliary display register says oscillator is not ok: %d", result);
             return -1;
         }
     } while (0);
@@ -78,13 +78,12 @@ static s32 st25r391x_turn_oscillator_on(struct i2c_client* i2c, struct st25r391x
 }
 
 static s32 st25r391x_turn_oscillator_off(struct i2c_client* i2c) {
-    struct device *dev = &i2c->dev;
     s32 result;
 
     // Disable oscillator
     result = st25r391x_write_register_byte_check(i2c, ST25R391X_OPERATION_CONTROL_REGISTER, 0);
     if (result < 0) {
-        dev_err(dev, "Failed to write operation control register %d", result);
+        dev_err(&i2c->dev, "st25r391x_turn_oscillator_off: Failed to write operation control register %d", result);
         return result;
     }
 
@@ -115,7 +114,7 @@ s32 st25r391x_turn_field_on(struct st25r391x_i2c_data *priv) {
         dev_err(priv->device, "st25r391x_turn_field_on: Failed to send adjust regulators command code %d", result);
         return result;
     }
-    result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, 0, ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_dct, 0, 0, 1000, 10);
+    result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, 0, ST25R391X_TIMER_AND_NFC_INTERRUPT_REGISTER_l_dct, 0, 0, 10000);  // TODO: check timeout
     if (result < 0) {
         dev_err(priv->device, "st25r391x_turn_field_on: Time out waiting for interrupt bit (adjust regulators command)");
         return result;
@@ -148,51 +147,87 @@ s32 st25r391x_turn_field_off(struct st25r391x_i2c_data *priv) {
     return result;
 }
 
-s32 st25r391x_transceive_frame(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_count, u8* rx_buf, u16 rx_buf_len, int crc, int receive) {
+s32 st25r391x_transceive_frame(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_count, u8* rx_buf, u16 rx_buf_len, int flags, u16 rx_timeout_usec) {
     s32 result;
+    u16 tx_bits_count;
+    u16 tx_bytes_count;
+    u8 fifo_flags;
+    if (flags & transceive_frame_bits) {
+        tx_bits_count = tx_count;
+        tx_bytes_count = tx_bits_count >> 3;
+        if (tx_bits_count & 0x7) {
+            tx_bytes_count++;
+        }
+    } else {
+        tx_bytes_count = tx_count;
+        tx_bits_count = tx_count << 3;
+    }
     do {
         result = st25r391x_direct_command(i2c, ST25R391X_CLEAR_FIFO_COMMAND_CODE);
         if (result < 0) break;
 
         if (tx_count > 0) {
-            result = st25r391x_load_fifo(i2c, tx_count, tx_buf);
+            result = st25r391x_load_fifo(i2c, tx_bytes_count, tx_buf);
             if (result < 0) {
                 struct device *dev = &i2c->dev;
-                dev_err(dev, "Failed to load FIFO %d", result);
+                dev_err(dev, "st25r391x_transceive_frame: failed to load FIFO %d", result);
                 break;
             }
 
-            result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_count >> 5, tx_count << 3);
+            result = st25r391x_write_registers_check(i2c, ST25R391X_NUMBER_OF_TRANSMITTED_BYTES_1_REGISTER, 2, tx_bits_count >> 8, tx_bits_count & 0xFF);
             if (result < 0) break;
 
-            if (crc) {
-                result = st25r391x_clear_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+            if (flags & transceive_frame_no_crc_rx) {
+                result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
                 if (result < 0) break;
             } else {
-                result = st25r391x_set_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+                result = st25r391x_clear_register_bits(i2c, ST25R391X_AUXILIARY_DEFINITION_REGISTER, ST25R391X_AUXILIARY_DEFINITION_REGISTER_no_crc_rx);
+                if (result < 0) break;
+            }
+
+            if (flags & (transceive_frame_no_par_tx | transceive_frame_no_par_rx)) {
+                u8 settings = 0;
+                if (flags & transceive_frame_no_par_tx) {
+                    settings |= ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_tx_par;
+                }
+                if (flags & transceive_frame_no_par_rx) {
+                    settings |= ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER_no_rx_par;
+                }
+                result = st25r391x_write_register_byte_check(i2c, ST25R391X_ISO14443A_AND_NFC_106KBS_SETTINGS_REGISTER, settings);
                 if (result < 0) break;
             }
 
             st25r391x_clear_interrupts(ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs | ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0);
 
-            result = st25r391x_direct_command(i2c, crc ? ST25R391X_TRANSMIT_WITH_CRC_COMMAND_CODE : ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE);
+            result = st25r391x_direct_command(i2c, flags & transceive_frame_no_crc_tx ? ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE : ST25R391X_TRANSMIT_WITH_CRC_COMMAND_CODE);
             if (result < 0) break;
 
-            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 1000, 5);
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_txe, 0, 0, 0, 5000);  // TODO: check timeout
             if (result < 0) break;
         }
 
-        if (receive) {
+        if (flags & transceive_frame_tx_only) {
+            if (rx_timeout_usec) {
+                usleep_range(rx_timeout_usec, rx_timeout_usec + 200);
+            }
+        } else {
             // Receive data
-            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, 1000, 5);
-            if (result < 0) break;
-            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 1000, 5);
-            if (result < 0) break;
-            result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, NULL);
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxs, 0, 0, 0, rx_timeout_usec);
             if (result < 0) {
-                struct device *dev = &i2c->dev;
-                dev_err(dev, "Read FIFO failed");
+                if (flags & transceive_frame_timeout) { // timeout not an error
+                    result = 0;
+                }
                 break;
+            }
+            result = st25r391x_polling_wait_for_interrupt_bit(i2c, ints, ST25R391X_MAIN_INTERRUPT_REGISTER_l_rxe, 0, 0, 0, 5000);  // TODO: check timeout
+            if (result < 0) break;
+            result = st25r391x_read_fifo(i2c, rx_buf_len, rx_buf, &fifo_flags);
+            if (result < 0) break;
+            if (flags & transceive_frame_bits) {
+                result = result << 3;
+                if (fifo_flags & 0x0E) {
+                    result = result - 8 + ((fifo_flags & 0x0E) >> 1);
+                }
             }
         }
     } while (0);

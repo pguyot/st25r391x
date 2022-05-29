@@ -90,7 +90,7 @@ static s32 st25r391x_nfcb_reqb_cid(struct st25r391x_i2c_data *priv, struct nfc_t
         buffer[0] = ISO14443B_COMMAND_REQB_APF;
         buffer[1] = ISO14443B_COMMAND_REQB_AFI_ALL;
         buffer[2] = ISO14443B_COMMAND_REQB_PARAM_NORMAL_N1;
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 3, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 3, buffer, sizeof(buffer), 0, 539); // Max TR0 for ATQB is 256/fs and max TR1 is 200/fs
         if (result < 0) break;
 
         if (result != 14 || buffer[0] != ISO14443B_COMMAND_ATQB_HEADER) {
@@ -105,7 +105,7 @@ static s32 st25r391x_nfcb_reqb_cid(struct st25r391x_i2c_data *priv, struct nfc_t
         buffer[6] = ISO14443B_COMMAND_ATTRIB_PARAM2_DEFAULT;
         buffer[7] = ISO14443B_COMMAND_ATTRIB_PARAM3;
         buffer[8] = cid;  // CID
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 9, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 9, buffer, sizeof(buffer), 0, 5000); // TODO: check rx timeout
         if (result < 0) break;
 
         if (result != 3 || buffer[0] != 0) {

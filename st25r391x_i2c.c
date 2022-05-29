@@ -204,7 +204,7 @@ s32 st25r391x_load_fifo(struct i2c_client *i2c, u16 len, const u8* data) {
             break;
         }
         
-        if (result != 0) {
+        if (result & 0xF0FF != 0) {
             struct device *dev = &i2c->dev;
             dev_err(dev, "st25r391x_load_fifo: read FIFO status registers, but value mismatch. Got %d, expected 0", result);
             break;

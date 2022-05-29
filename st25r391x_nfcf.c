@@ -81,7 +81,7 @@ static s32 st25r391x_nfcf_poll(struct st25r391x_i2c_data *priv, struct nfc_tag_i
         buffer[1] = 0xFF;
         buffer[2] = 0xFF;
         buffer[3] = 0x00;
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 4, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 4, buffer, sizeof(buffer), 0, 5000); // TODO: check rx timeout
         if (result < 0) break;
 
         dev_err(priv->device, "st25r391x_nfcf_poll, got %d bytes", result);

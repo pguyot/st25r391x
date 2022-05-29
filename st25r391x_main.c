@@ -220,34 +220,24 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
     struct nfc_message_transceive_frame_response_payload payload;
     struct i2c_client *i2c = priv->i2c;
     struct st25r391x_interrupts *ints = &priv->ints;
-    u8 tag_type = priv->mode_params.transceive_frame.tag_id.tag_type;
-    u8 flags = priv->mode_params.transceive_frame.flags;
+    u8 result_flags = priv->mode_params.transceive_frame.flags & (NFC_TRANSCEIVE_FLAGS_NOCRC_RX | NFC_TRANSCEIVE_RESPONSE_FLAGS_NOPAR_RX | NFC_TRANSCEIVE_FLAGS_BITS);
     u16 rx_data_count = 0;
     u16 payload_len;
     s32 result;
 
     memset(&payload, 0, sizeof(payload));
-    // No parity is only supported with ISO-14443-A for now and currently implies no CRC and bits
-    if ((flags & NFC_TRANSCEIVE_FLAGS_NOPARITY)
-        && (flags & NFC_TRANSCEIVE_FLAGS_BITS)
-        && (flags & NFC_TRANSCEIVE_FLAGS_NOCRC)
-        && ((tag_type >= NFC_TAG_TYPE_ISO14443A)
-        || (tag_type < NFC_TAG_TYPE_ISO14443B))) {
-        result = st25r391x_transceive_frame_raw_iso14443a(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
-        if (result > 0) {
+    result = st25r391x_transceive_frame(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), priv->mode_params.transceive_frame.flags, priv->mode_params.transceive_frame.rx_timeout);
+    if (result == 0 && priv->mode_params.transceive_frame.flags & NFC_TRANSCEIVE_FLAGS_TIMEOUT) {
+        result_flags |= NFC_TRANSCEIVE_RESPONSE_FLAGS_TIMEOUT;
+    } else if (result > 0) {
+        if (result_flags & NFC_TRANSCEIVE_RESPONSE_FLAGS_BITS) {
             rx_data_count = result >> 3;
             if (result & 0x07) {
                 rx_data_count++;
             }
-        }
-    } else if (!(flags & NFC_TRANSCEIVE_FLAGS_BITS) && !(flags & NFC_TRANSCEIVE_FLAGS_NOPARITY)) {
-        result = st25r391x_transceive_frame(i2c, ints, priv->mode_params.transceive_frame.tx_data, priv->mode_params.transceive_frame.tx_count, payload.rx_data, sizeof(payload.rx_data), !(flags & NFC_TRANSCEIVE_FLAGS_NOCRC), !(flags & NFC_TRANSCEIVE_FLAGS_TX_ONLY));
-        if (result > 0) {
+        } else {
             rx_data_count = result;
         }
-    } else {
-        dev_err(priv->device, "Unsupported transceive flags %d for tag_type %d", flags, tag_type);
-        result = -1;
     }
 
     payload_len = rx_data_count + offsetof(struct nfc_message_transceive_frame_response_payload, rx_data);
@@ -256,14 +246,14 @@ static void st25r391x_do_transceive_frame(struct st25r391x_i2c_data *priv) {
     st25r391x_write_to_device(priv, (const u8*) &response_message_header, sizeof(response_message_header));
 
     if (result >= 0) {
-        payload.flags = flags;
+        payload.flags = result_flags;
         payload.rx_count = result;
         st25r391x_write_to_device(priv, (const u8*) &payload, payload_len);
 
         // tag_id is common between selected and transceive_frame params.
         priv->mode = mode_selected;
     } else {
-        payload.flags = NFC_TRANSCEIVE_FLAGS_ERROR;
+        payload.flags = NFC_TRANSCEIVE_RESPONSE_FLAGS_ERROR;
         st25r391x_write_to_device(priv, (const u8*) &payload, payload_len);
 
         st25r391x_transition_to_idle(priv);
@@ -456,12 +446,12 @@ static void st25r391x_write_process_packet(struct st25r391x_i2c_data *priv, u16 
                 struct nfc_message_header response_message_header;
                 struct nfc_message_transceive_frame_response_payload payload;
 
-                dev_err(priv->device, "Unexpected message, tag must be selected first (mode=%d)", priv->mode);
+                dev_err(priv->device, "NFC_TRANSCEIVE_FRAME_REQUEST_MESSAGE_TYPE: unexpected message, tag must be selected first (mode=%d)", priv->mode);
                 payload_len = offsetof(struct nfc_message_transceive_frame_response_payload, rx_data);
                 response_message_header.message_type = NFC_TRANSCEIVE_FRAME_RESPONSE_MESSAGE_TYPE;
                 response_message_header.payload_length = payload_len;
                 st25r391x_write_to_device(priv, (const u8*) &response_message_header, sizeof(response_message_header));
-                payload.flags = NFC_TRANSCEIVE_FLAGS_ERROR;
+                payload.flags = NFC_TRANSCEIVE_RESPONSE_FLAGS_ERROR;
                 st25r391x_write_to_device(priv, (const u8*) &payload, payload_len);
 
                 if (priv->mode != mode_idle) {
@@ -473,6 +463,7 @@ static void st25r391x_write_process_packet(struct st25r391x_i2c_data *priv, u16 
             // tag_id is common between selected and transceive_frame params
             priv->mode_params.transceive_frame.tx_count = payload->tx_count;
             priv->mode_params.transceive_frame.flags = payload->flags;
+            priv->mode_params.transceive_frame.rx_timeout = payload->rx_timeout;
             memcpy((void*) priv->mode_params.transceive_frame.tx_data, priv->write_buffer + sizeof(struct nfc_message_header) + offsetof(struct nfc_transceive_frame_request_message_payload, tx_data), payload_len - offsetof(struct nfc_transceive_frame_request_message_payload, tx_data));
             priv->mode = mode_transceive_frame;
             trigger_polling_work(priv);

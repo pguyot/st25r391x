@@ -244,15 +244,18 @@ struct nfc_select_tag_message_payload {
 
 struct nfc_transceive_frame_request_message_payload {
     uint16_t tx_count;          // in bits or in bytes
-    uint8_t flags;
+    uint16_t rx_timeout;        // timeout in usec before rx starts
+    uint8_t flags;              // See below
     uint8_t tx_data[512];       // could be less
 } __attribute__((packed));
 
-#define NFC_TRANSCEIVE_FLAGS_NOCRC      1 << 0
-#define NFC_TRANSCEIVE_FLAGS_NOPARITY   1 << 1
+#define NFC_TRANSCEIVE_FLAGS_NOCRC_TX   1 << 0
+#define NFC_TRANSCEIVE_FLAGS_NOPAR_TX   1 << 1
 #define NFC_TRANSCEIVE_FLAGS_BITS       1 << 2  // TX and RX partial bits, tx_count in bits
 #define NFC_TRANSCEIVE_FLAGS_TX_ONLY    1 << 3  // Do not receive any answer (only transmit)
-#define NFC_TRANSCEIVE_FLAGS_ERROR      1 << 7  // Transceive failed, chip is unselected and field is turned off.
+#define NFC_TRANSCEIVE_FLAGS_TIMEOUT    1 << 4  // Timeout not considered an error (passive ack)
+#define NFC_TRANSCEIVE_FLAGS_NOCRC_RX   1 << 5  // Do not check CRC on Rx
+#define NFC_TRANSCEIVE_FLAGS_NOPAR_RX   1 << 6  // Do not check/decode parity on Rx
 
 // Driver => Client
 #define NFC_TRANSCEIVE_FRAME_RESPONSE_MESSAGE_TYPE 9
@@ -260,8 +263,17 @@ struct nfc_transceive_frame_request_message_payload {
 
 struct nfc_message_transceive_frame_response_payload {
     uint16_t rx_count;      // in bits or in bytes
-    uint8_t flags;          // Identical to request flags, including NFC_TRANSCEIVE_FLAGS_BITS
+    uint8_t flags;          // See below
     uint8_t rx_data[512];   // could be less
 } __attribute__((packed));
+
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_BITS      1 << 2  // Count is in bits
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_TIMEOUT   1 << 4  // Timeout waiting for Rx
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOCRC_RX  1 << 5
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOPAR_RX  1 << 6
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_ERROR     1 << 7  // Transceive failed.
+
+// _ERROR is set if the request failed, including timeout, unless _TIMEOUT was
+// provided. When _ERROR is set, chip is unselected and field is turned off.
 
 #endif

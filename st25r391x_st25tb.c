@@ -55,7 +55,7 @@ static s32 st25r391x_st25tb_select_and_get_uid(struct st25r391x_i2c_data *priv, 
     do {
         buffer[0] = ST25TB_COMMAND_SELECT_H;
         buffer[1] = chip_id;
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 0, 5000); // TODO: check rx timeout
         if (result < 0) break;
 
         if (result != 3 || buffer[0] != chip_id) {
@@ -65,7 +65,7 @@ static s32 st25r391x_st25tb_select_and_get_uid(struct st25r391x_i2c_data *priv, 
         }
 
         buffer[0] = ST25TB_COMMAND_GET_UID;
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 1, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 1, buffer, sizeof(buffer), 0, 5000); // TODO: check rx timeout
         if (result < 0) break;
 
         if (result != 10) {
@@ -101,7 +101,7 @@ static s32 st25r391x_st25tb_initiate(struct st25r391x_i2c_data *priv, struct nfc
 
         buffer[0] = ST25TB_COMMAND_INITIATE_H;
         buffer[1] = ST25TB_COMMAND_INITIATE_L;
-        result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 1, 1);
+        result = st25r391x_transceive_frame(i2c, ints, buffer, 2, buffer, sizeof(buffer), 0, 5000); // TODO: check rx timeout
         if (result < 0) break;
 
         if (buffer[0] == 255) {
