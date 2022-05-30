@@ -423,5 +423,6 @@ void st25r391x_nfca_discover(struct st25r391x_i2c_data *priv) {
 }
 
 void st25r391x_nfca_select(struct st25r391x_i2c_data *priv) {
+    // FIXME: will select any tag, ignoring the UID
     st25r391x_nfca_poll(priv, 1);
 }
