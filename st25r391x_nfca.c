@@ -305,6 +305,7 @@ static s32 st25r391x_nfca_do_select(struct st25r391x_i2c_data *priv,
 			}
 
 			// We have a full uid.
+			/* jscpd:ignore-start */
 			if (cascade_level == 1) {
 				if ((uid[0] ^ uid[1] ^ uid[2] ^ uid[3]) !=
 				    uid[4]) {
@@ -393,6 +394,7 @@ static s32 st25r391x_nfca_do_select(struct st25r391x_i2c_data *priv,
 					result = 0;
 				}
 			}
+			/* jscpd:ignore-end */
 		} while (known_bits < 40);
 
 		// Reset antcl bit
@@ -483,26 +485,26 @@ static void st25r391x_nfca_process_tag(
 				NFC_TAG_PROTOCOL_ISO14443A4;
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_ISO14443A_T2T &&
 					tag_type == NFC_TAG_TYPE_ISO14443A_T2T;
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_MIFARE_CLASSIC &&
 					tag_type == NFC_TAG_TYPE_MIFARE_CLASSIC;
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_ISO14443A_NFCDEP &&
 					tag_type ==
 						NFC_TAG_TYPE_ISO14443A_NFCDEP;
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_ISO14443A4 &&
 					(tag_type ==
@@ -511,13 +513,13 @@ static void st25r391x_nfca_process_tag(
 						 NFC_TAG_TYPE_ISO14443A_T4T_NFCDEP);
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_ISO14443A_T4T &&
 					tag_type == NFC_TAG_TYPE_ISO14443A_T4T;
 		matching_type =
 			matching_type ?
-				1 :
+				      1 :
 				      priv->mode_params.discover.protocols &
 						NFC_TAG_PROTOCOL_ISO14443A_T4T_NFCDEP &&
 					tag_type ==

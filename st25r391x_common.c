@@ -291,7 +291,7 @@ s32 st25r391x_transceive_frame(struct i2c_client *i2c,
 			result = st25r391x_direct_command(
 				i2c,
 				flags & transceive_frame_no_crc_tx ?
-					ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE :
+					      ST25R391X_TRANSMIT_WITHOUT_CRC_COMMAND_CODE :
 					      ST25R391X_TRANSMIT_WITH_CRC_COMMAND_CODE);
 			if (result < 0)
 				break;
