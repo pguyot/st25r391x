@@ -26,7 +26,7 @@
 
 struct st25r391x_i2c_data;
 
-s32 st25r391x_set_iso14443b_mode(struct i2c_client* i2c);
+s32 st25r391x_set_iso14443b_mode(struct i2c_client *i2c);
 void st25r391x_nfcb_discover(struct st25r391x_i2c_data *priv);
 void st25r391x_nfcb_select(struct st25r391x_i2c_data *priv);
 

@@ -25,10 +25,15 @@
 #include <linux/i2c.h>
 
 struct st25r391x_interrupts {
-    u8 flags[4];
+	u8 flags[4];
 };
 
-void st25r391x_clear_interrupts(struct st25r391x_interrupts* ints, u8 main_mask, u8 timer_and_nfc_mask, u8 error_and_wakeup_mask, u8 passive_target_mask);
-int st25r391x_polling_wait_for_interrupt_bit(struct i2c_client *i2c, struct st25r391x_interrupts* ints, u8 main_mask, u8 timer_and_nfc_mask, u8 error_and_wakeup_mask, u8 passive_target_mask, u16 timeout_usec);
+void st25r391x_clear_interrupts(struct st25r391x_interrupts *ints, u8 main_mask,
+				u8 timer_and_nfc_mask, u8 error_and_wakeup_mask,
+				u8 passive_target_mask);
+int st25r391x_polling_wait_for_interrupt_bit(
+	struct i2c_client *i2c, struct st25r391x_interrupts *ints, u8 main_mask,
+	u8 timer_and_nfc_mask, u8 error_and_wakeup_mask, u8 passive_target_mask,
+	u16 timeout_usec);
 
 #endif

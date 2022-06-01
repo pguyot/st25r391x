@@ -30,10 +30,10 @@
 
 /* ioctl definitions */
 
-#define NFC_RD_GET_PROTOCOL_VERSION                 _IOR ('N', 0, uint64_t)
+#define NFC_RD_GET_PROTOCOL_VERSION _IOR('N', 0, uint64_t)
 
 // This version
-#define NFC_PROTOCOL_VERSION_1                      0x004E464300000001ULL
+#define NFC_PROTOCOL_VERSION_1 0x004E464300000001ULL
 
 /* messages */
 
@@ -44,8 +44,8 @@
 // Payload is up to 65535 bytes.
 
 struct nfc_message_header {
-    uint8_t message_type;
-    uint16_t payload_length;
+	uint8_t message_type;
+	uint16_t payload_length;
 } __attribute__((packed));
 
 // ---- Identify request ----
@@ -83,117 +83,129 @@ struct nfc_message_header {
 // Transition the device to discovery mode. The message can also be sent if the
 // device was already in discover mode, thus updating the parameters.
 struct nfc_discover_mode_request_message_payload {
-    uint64_t protocols;         // protocols to poll for (NFC_TAG_PROTOCOL_*)
-    uint32_t polling_period;    // polling period in ms
-    uint8_t device_count;       // number of devices to find before transitionning to idle, 0 means infinite
-    uint8_t max_bitrate;        // maximum bit rate for communications (NFC_BITRATE_*)
-    uint8_t flags;              // Discover flags
+	uint64_t protocols; // protocols to poll for (NFC_TAG_PROTOCOL_*)
+	uint32_t polling_period; // polling period in ms
+	uint8_t device_count; // number of devices to find before transitionning to idle, 0 means infinite
+	uint8_t max_bitrate; // maximum bit rate for communications (NFC_BITRATE_*)
+	uint8_t flags; // Discover flags
 };
 #define NFC_DISCOVER_MODE_REQUEST_MESSAGE_TYPE 4
 
 // Select tag and exits discover mode.
 // Device will reply with a NFC_SELECTED_TAG_MESSAGE_TYPE instead of
 // NFC_DETECTED_TAG_MESSAGE_TYPE message.
-#define NFC_DISCOVER_FLAGS_SELECT       1
+#define NFC_DISCOVER_FLAGS_SELECT 1
 
 // ---- Detected tag message ----
 // Driver => Client
-#define NFC_DETECTED_TAG_MESSAGE_TYPE   5
+#define NFC_DETECTED_TAG_MESSAGE_TYPE 5
 /// Payload length is variable
 
-#define NFC_TAG_TYPE_ISO14443A          1
-#define NFC_TAG_TYPE_ISO14443A_T2T      2
-#define NFC_TAG_TYPE_MIFARE_CLASSIC     3
-#define NFC_TAG_TYPE_ISO14443A_NFCDEP   4
+#define NFC_TAG_TYPE_ISO14443A 1
+#define NFC_TAG_TYPE_ISO14443A_T2T 2
+#define NFC_TAG_TYPE_MIFARE_CLASSIC 3
+#define NFC_TAG_TYPE_ISO14443A_NFCDEP 4
 // Every array of bytes (atqa, uid, etc.) is stored in protocol order.
 struct nfc_tag_info_iso14443a {
-    uint8_t atqa[2];
-    uint8_t sak;
-    uint8_t uid_len;
-    uint8_t uid[10];   // up to 10.
+	uint8_t atqa[2];
+	uint8_t sak;
+	uint8_t uid_len;
+	uint8_t uid[10]; // up to 10.
 } __attribute__((packed));
 
-#define NFC_TAG_TYPE_ISO14443A_T4T          6
-#define NFC_TAG_TYPE_ISO14443A_T4T_NFCDEP   7
+#define NFC_TAG_TYPE_ISO14443A_T4T 6
+#define NFC_TAG_TYPE_ISO14443A_T4T_NFCDEP 7
 struct nfc_tag_info_iso14443a4 {
-    uint8_t atqa[2];
-    uint8_t sak;
-    uint8_t uid_len;
-    uint8_t uid[10];
-    uint8_t ats_len;    // length of ATS, excluding length byte
-    uint8_t ats[254];   // up to 254, excluding length byte (TL)
+	uint8_t atqa[2];
+	uint8_t sak;
+	uint8_t uid_len;
+	uint8_t uid[10];
+	uint8_t ats_len; // length of ATS, excluding length byte
+	uint8_t ats[254]; // up to 254, excluding length byte (TL)
 } __attribute__((packed));
 
-#define NFC_TAG_TYPE_ISO14443A_T1T   8
+#define NFC_TAG_TYPE_ISO14443A_T1T 8
 
-#define NFC_TAG_TYPE_ISO14443B  16
+#define NFC_TAG_TYPE_ISO14443B 16
 struct nfc_tag_info_iso14443b {
-    uint8_t pupi[4];
-    uint8_t application_data[4];
-    uint8_t protocol_info[3];
+	uint8_t pupi[4];
+	uint8_t application_data[4];
+	uint8_t protocol_info[3];
 } __attribute__((packed));
 
-#define NFC_TAG_TYPE_ST25TB      17
+#define NFC_TAG_TYPE_ST25TB 17
 struct nfc_tag_info_st25tb {
-    uint8_t uid[8];
+	uint8_t uid[8];
 } __attribute__((packed));
 
-#define NFC_TAG_TYPE_NFCF           24
-#define NFC_TAG_TYPE_NFCF_NFCDEP    25
+#define NFC_TAG_TYPE_NFCF 24
+#define NFC_TAG_TYPE_NFCF_NFCDEP 25
 struct nfc_tag_info_nfcf {
 } __attribute__((packed));
 
-#define NFC_TAG_TYPE_ISO15693           32
-#define NFC_TAG_TYPE_ISO15693_ST25XV    33
+#define NFC_TAG_TYPE_ISO15693 32
+#define NFC_TAG_TYPE_ISO15693_ST25XV 33
 struct nfc_tag_info_iso15693 {
 } __attribute__((packed));
 
 struct nfc_detected_tag_message_payload {
-    uint8_t tag_type;
-    union {
-        struct nfc_tag_info_iso14443a iso14443a;
-        struct nfc_tag_info_iso14443a4 iso14443a4;
-        struct nfc_tag_info_iso14443b iso14443b;
-        struct nfc_tag_info_st25tb st25tb;
-        struct nfc_tag_info_nfcf nfcf;
-    } tag_info;
+	uint8_t tag_type;
+	union {
+		struct nfc_tag_info_iso14443a iso14443a;
+		struct nfc_tag_info_iso14443a4 iso14443a4;
+		struct nfc_tag_info_iso14443b iso14443b;
+		struct nfc_tag_info_st25tb st25tb;
+		struct nfc_tag_info_nfcf nfcf;
+	} tag_info;
 } __attribute__((packed));
 
-#define NFC_TAG_PROTOCOL_ISO14443A            1ULL << NFC_TAG_TYPE_ISO14443A            // Generic ISO-14443-A, including the following.
-#define NFC_TAG_PROTOCOL_ISO14443A_T2T        1ULL << NFC_TAG_TYPE_ISO14443A_T2T        // ISO-14443-A subtype NFC Forum Type 2 Tag (Mifare Ultralight)
-#define NFC_TAG_PROTOCOL_MIFARE_CLASSIC       1ULL << NFC_TAG_TYPE_MIFARE_CLASSIC       // ISO-14443-A subtype MIFARE CLASSIC with encryption
-#define NFC_TAG_PROTOCOL_ISO14443A_NFCDEP     1ULL << NFC_TAG_TYPE_ISO14443A_NFCDEP     // ISO-14443-A subtype NFCDEP (NFCA Passive P2P)
-#define NFC_TAG_PROTOCOL_ISO14443A4           1ULL << 5                                 // ISO-14443-A subtype supporting ISO-14443-4 protocol (ATS), including the following:
-#define NFC_TAG_PROTOCOL_ISO14443A_T4T        1ULL << NFC_TAG_TYPE_ISO14443A_T4T        // ISO-14443-A-4 subtype NFC Forum Type 4 Tag (NFCA Passive ISO-DEP)
-#define NFC_TAG_PROTOCOL_ISO14443A_T4T_NFCDEP 1ULL << NFC_TAG_TYPE_ISO14443A_T4T_NFCDEP // ISO-14443-A-4 subtype NFC Forum Type 4 Tag with NFCDEP
+#define NFC_TAG_PROTOCOL_ISO14443A \
+	1ULL << NFC_TAG_TYPE_ISO14443A // Generic ISO-14443-A, including the following.
+#define NFC_TAG_PROTOCOL_ISO14443A_T2T \
+	1ULL << NFC_TAG_TYPE_ISO14443A_T2T // ISO-14443-A subtype NFC Forum Type 2 Tag (Mifare Ultralight)
+#define NFC_TAG_PROTOCOL_MIFARE_CLASSIC \
+	1ULL << NFC_TAG_TYPE_MIFARE_CLASSIC // ISO-14443-A subtype MIFARE CLASSIC with encryption
+#define NFC_TAG_PROTOCOL_ISO14443A_NFCDEP \
+	1ULL << NFC_TAG_TYPE_ISO14443A_NFCDEP // ISO-14443-A subtype NFCDEP (NFCA Passive P2P)
+#define NFC_TAG_PROTOCOL_ISO14443A4 \
+	1ULL << 5 // ISO-14443-A subtype supporting ISO-14443-4 protocol (ATS), including the following:
+#define NFC_TAG_PROTOCOL_ISO14443A_T4T \
+	1ULL << NFC_TAG_TYPE_ISO14443A_T4T // ISO-14443-A-4 subtype NFC Forum Type 4 Tag (NFCA Passive ISO-DEP)
+#define NFC_TAG_PROTOCOL_ISO14443A_T4T_NFCDEP \
+	1ULL << NFC_TAG_TYPE_ISO14443A_T4T_NFCDEP // ISO-14443-A-4 subtype NFC Forum Type 4 Tag with NFCDEP
 
-#define NFC_TAG_PROTOCOL_ISO14443A_T1T        1ULL << NFC_TAG_TYPE_ISO14443A_T1T        // ISO-14443-A subtype NFC Forum Type 1 Tag (Topaz Jewel)
+#define NFC_TAG_PROTOCOL_ISO14443A_T1T \
+	1ULL << NFC_TAG_TYPE_ISO14443A_T1T // ISO-14443-A subtype NFC Forum Type 1 Tag (Topaz Jewel)
 
-#define NFC_TAG_PROTOCOL_ISO14443B            1ULL << NFC_TAG_TYPE_ISO14443B        // ISO-14443-B
-#define NFC_TAG_PROTOCOL_ST25TB               1ULL << NFC_TAG_TYPE_ST25TB           // ISO-14443-B ST variant
-#define NFC_TAG_PROTOCOL_ISO14443BI           1ULL << 18                            // ISO-14443-B'
-#define NFC_TAG_PROTOCOL_ISO14443BICLASS      1ULL << 19                            // HID iClass 14443B mode
-#define NFC_TAG_PROTOCOL_ISO14443B2CT         1ULL << 20                            // ISO-14443-2B ASK CTx
+#define NFC_TAG_PROTOCOL_ISO14443B 1ULL << NFC_TAG_TYPE_ISO14443B // ISO-14443-B
+#define NFC_TAG_PROTOCOL_ST25TB \
+	1ULL << NFC_TAG_TYPE_ST25TB // ISO-14443-B ST variant
+#define NFC_TAG_PROTOCOL_ISO14443BI 1ULL << 18 // ISO-14443-B'
+#define NFC_TAG_PROTOCOL_ISO14443BICLASS 1ULL << 19 // HID iClass 14443B mode
+#define NFC_TAG_PROTOCOL_ISO14443B2CT 1ULL << 20 // ISO-14443-2B ASK CTx
 
-#define NFC_TAG_PROTOCOL_NFCF                 1ULL << NFC_TAG_TYPE_NFCF             // NFC-F, also known as FELICA and NFC Forum Type 3
-#define NFC_TAG_PROTOCOL_NFCF_NFCDEP          1ULL << NFC_TAG_TYPE_NFCF_NFCDEP      // NFC-F subtype NFCDEP
+#define NFC_TAG_PROTOCOL_NFCF \
+	1ULL << NFC_TAG_TYPE_NFCF // NFC-F, also known as FELICA and NFC Forum Type 3
+#define NFC_TAG_PROTOCOL_NFCF_NFCDEP \
+	1ULL << NFC_TAG_TYPE_NFCF_NFCDEP // NFC-F subtype NFCDEP
 
-#define NFC_TAG_PROTOCOL_ISO15693             1ULL << NFC_TAG_TYPE_ISO15693         // NFC-V
-#define NFC_TAG_PROTOCOL_ISO15693_ST25XV      1ULL << NFC_TAG_TYPE_ISO15693_ST25XV  // NFC-V ST subprotocol
+#define NFC_TAG_PROTOCOL_ISO15693 1ULL << NFC_TAG_TYPE_ISO15693 // NFC-V
+#define NFC_TAG_PROTOCOL_ISO15693_ST25XV \
+	1ULL << NFC_TAG_TYPE_ISO15693_ST25XV // NFC-V ST subprotocol
 
-#define NFC_TAG_PROTOCOL_ISO18092             1ULL << 48
+#define NFC_TAG_PROTOCOL_ISO18092 1ULL << 48
 
-#define NFC_BITRATE_1_66            1
-#define NFC_BITRATE_26_48           2
-#define NFC_BITRATE_52_97           3
-#define NFC_BITRATE_106             4
-#define NFC_BITRATE_212             5
-#define NFC_BITRATE_424             6
-#define NFC_BITRATE_848             7
-#define NFC_BITRATE_1695            8
-#define NFC_BITRATE_3390            9
-#define NFC_BITRATE_6780            10
-#define NFC_BITRATE_13560           11
+#define NFC_BITRATE_1_66 1
+#define NFC_BITRATE_26_48 2
+#define NFC_BITRATE_52_97 3
+#define NFC_BITRATE_106 4
+#define NFC_BITRATE_212 5
+#define NFC_BITRATE_424 6
+#define NFC_BITRATE_848 7
+#define NFC_BITRATE_1695 8
+#define NFC_BITRATE_3390 9
+#define NFC_BITRATE_6780 10
+#define NFC_BITRATE_13560 11
 
 // ---- Select tag ----
 // Client => Driver
@@ -204,25 +216,25 @@ struct nfc_detected_tag_message_payload {
 /// Payload length is variable
 
 struct nfc_tag_id_iso14443a {
-    uint8_t uid_len;
-    uint8_t uid[10];   // up to 10.
+	uint8_t uid_len;
+	uint8_t uid[10]; // up to 10.
 } __attribute__((packed));
 
 struct nfc_tag_id_iso14443b {
-    uint8_t pupi[4];
+	uint8_t pupi[4];
 } __attribute__((packed));
 
 struct nfc_tag_id_st25tb {
-    uint8_t uid[8];
+	uint8_t uid[8];
 } __attribute__((packed));
 
 struct nfc_select_tag_message_payload {
-    uint8_t tag_type;
-    union {
-        struct nfc_tag_id_iso14443a iso14443a;
-        struct nfc_tag_id_iso14443b iso14443b;
-        struct nfc_tag_id_st25tb st25tb;
-    } tag_id;
+	uint8_t tag_type;
+	union {
+		struct nfc_tag_id_iso14443a iso14443a;
+		struct nfc_tag_id_iso14443b iso14443b;
+		struct nfc_tag_id_st25tb st25tb;
+	} tag_id;
 } __attribute__((packed));
 
 // Driver => Client
@@ -243,35 +255,38 @@ struct nfc_select_tag_message_payload {
 /// Payload length is variable
 
 struct nfc_transceive_frame_request_message_payload {
-    uint16_t tx_count;          // in bits or in bytes
-    uint16_t rx_timeout;        // timeout in usec before rx starts
-    uint8_t flags;              // See below
-    uint8_t tx_data[512];       // could be less
+	uint16_t tx_count; // in bits or in bytes
+	uint16_t rx_timeout; // timeout in usec before rx starts
+	uint8_t flags; // See below
+	uint8_t tx_data[512]; // could be less
 } __attribute__((packed));
 
-#define NFC_TRANSCEIVE_FLAGS_NOCRC_TX   1 << 0
-#define NFC_TRANSCEIVE_FLAGS_NOPAR_TX   1 << 1
-#define NFC_TRANSCEIVE_FLAGS_BITS       1 << 2  // TX and RX partial bits, tx_count in bits
-#define NFC_TRANSCEIVE_FLAGS_TX_ONLY    1 << 3  // Do not receive any answer (only transmit)
-#define NFC_TRANSCEIVE_FLAGS_TIMEOUT    1 << 4  // Timeout not considered an error (passive ack)
-#define NFC_TRANSCEIVE_FLAGS_NOCRC_RX   1 << 5  // Do not check CRC on Rx
-#define NFC_TRANSCEIVE_FLAGS_NOPAR_RX   1 << 6  // Do not check/decode parity on Rx
+#define NFC_TRANSCEIVE_FLAGS_NOCRC_TX 1 << 0
+#define NFC_TRANSCEIVE_FLAGS_NOPAR_TX 1 << 1
+#define NFC_TRANSCEIVE_FLAGS_BITS \
+	1 << 2 // TX and RX partial bits, tx_count in bits
+#define NFC_TRANSCEIVE_FLAGS_TX_ONLY \
+	1 << 3 // Do not receive any answer (only transmit)
+#define NFC_TRANSCEIVE_FLAGS_TIMEOUT \
+	1 << 4 // Timeout not considered an error (passive ack)
+#define NFC_TRANSCEIVE_FLAGS_NOCRC_RX 1 << 5 // Do not check CRC on Rx
+#define NFC_TRANSCEIVE_FLAGS_NOPAR_RX 1 << 6 // Do not check/decode parity on Rx
 
 // Driver => Client
 #define NFC_TRANSCEIVE_FRAME_RESPONSE_MESSAGE_TYPE 9
 /// Payload length is variable
 
 struct nfc_message_transceive_frame_response_payload {
-    uint16_t rx_count;      // in bits or in bytes
-    uint8_t flags;          // See below
-    uint8_t rx_data[512];   // could be less
+	uint16_t rx_count; // in bits or in bytes
+	uint8_t flags; // See below
+	uint8_t rx_data[512]; // could be less
 } __attribute__((packed));
 
-#define NFC_TRANSCEIVE_RESPONSE_FLAGS_BITS      1 << 2  // Count is in bits
-#define NFC_TRANSCEIVE_RESPONSE_FLAGS_TIMEOUT   1 << 4  // Timeout waiting for Rx
-#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOCRC_RX  1 << 5
-#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOPAR_RX  1 << 6
-#define NFC_TRANSCEIVE_RESPONSE_FLAGS_ERROR     1 << 7  // Transceive failed.
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_BITS 1 << 2 // Count is in bits
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_TIMEOUT 1 << 4 // Timeout waiting for Rx
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOCRC_RX 1 << 5
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_NOPAR_RX 1 << 6
+#define NFC_TRANSCEIVE_RESPONSE_FLAGS_ERROR 1 << 7 // Transceive failed.
 
 // _ERROR is set if the request failed, including timeout, unless _TIMEOUT was
 // provided. When _ERROR is set, chip is unselected and field is turned off.

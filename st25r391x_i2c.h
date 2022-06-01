@@ -25,14 +25,19 @@
 #include <linux/i2c.h>
 
 s32 st25r391x_read_register_byte(struct i2c_client *i2c, u8 reg);
-s32 st25r391x_read_registers_u16(struct i2c_client *i2c, u8 first_reg); // first register is msb
-s32 st25r391x_write_register_byte_check(struct i2c_client *i2c, u8 reg, u8 value);
-s32 st25r391x_write_registers_check(struct i2c_client *i2c, u8 first_reg, u8 count, ...);
-s32 st25r391x_write_bank_b_registers(struct i2c_client *i2c, u8 first_reg, u8 count, ...);
+s32 st25r391x_read_registers_u16(struct i2c_client *i2c,
+				 u8 first_reg); // first register is msb
+s32 st25r391x_write_register_byte_check(struct i2c_client *i2c, u8 reg,
+					u8 value);
+s32 st25r391x_write_registers_check(struct i2c_client *i2c, u8 first_reg,
+				    u8 count, ...);
+s32 st25r391x_write_bank_b_registers(struct i2c_client *i2c, u8 first_reg,
+				     u8 count, ...);
 s32 st25r391x_set_register_bits(struct i2c_client *i2c, u8 reg, u8 value);
 s32 st25r391x_clear_register_bits(struct i2c_client *i2c, u8 reg, u8 value);
 s32 st25r391x_direct_command(struct i2c_client *i2c, u8 cmd);
-s32 st25r391x_load_fifo(struct i2c_client *i2c, u16 len, const u8* data);
-s32 st25r391x_read_fifo(struct i2c_client *i2c, u16 max_len, u8* data, u8* status_2_flags);
+s32 st25r391x_load_fifo(struct i2c_client *i2c, u16 len, const u8 *data);
+s32 st25r391x_read_fifo(struct i2c_client *i2c, u16 max_len, u8 *data,
+			u8 *status_2_flags);
 
 #endif

@@ -56,3 +56,6 @@ dkms.conf
 
 # Additional temporary files
 *.tmp
+
+# linux headers
+usr

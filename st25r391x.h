@@ -37,11 +37,11 @@
 #include "nfc.h"
 
 enum st25r391x_mode {
-    mode_idle,
-    mode_discover,
-    mode_select,
-    mode_selected,
-    mode_transceive_frame
+	mode_idle,
+	mode_discover,
+	mode_select,
+	mode_selected,
+	mode_transceive_frame
 };
 
 #define MAX_PACKET_SIZE 1285
@@ -50,69 +50,71 @@ enum st25r391x_mode {
 // Data structures
 
 struct st25r391x_tag_id {
-    u8 tag_type;
-    u8 cid;
-    u8 uid_len;
-    u8 uid[10];
+	u8 tag_type;
+	u8 cid;
+	u8 uid_len;
+	u8 uid[10];
 };
 
 struct st25r391x_discover_params {
-    u64 protocols;
-    u32 polling_period;
-    u8 device_count;
-    u8 max_bitrate;
-    u8 flags;
+	u64 protocols;
+	u32 polling_period;
+	u8 device_count;
+	u8 max_bitrate;
+	u8 flags;
 };
 
 struct st25r391x_select_params {
-    struct st25r391x_tag_id tag_id;
+	struct st25r391x_tag_id tag_id;
 };
 
 struct st25r391x_selected_params {
-    struct st25r391x_tag_id tag_id;
+	struct st25r391x_tag_id tag_id;
 };
 
 struct st25r391x_transceive_frame_params {
-    struct st25r391x_tag_id tag_id;
-    u16 tx_count;
-    u8 flags;
-    u16 rx_timeout;
-    u8 tx_data[512];
+	struct st25r391x_tag_id tag_id;
+	u16 tx_count;
+	u8 flags;
+	u16 rx_timeout;
+	u8 tx_data[512];
 };
 
 union st25r391x_mode_params {
-    struct st25r391x_discover_params discover;
-    struct st25r391x_select_params select;
-    struct st25r391x_selected_params selected;
-    struct st25r391x_transceive_frame_params transceive_frame;
+	struct st25r391x_discover_params discover;
+	struct st25r391x_select_params select;
+	struct st25r391x_selected_params selected;
+	struct st25r391x_transceive_frame_params transceive_frame;
 };
 
 struct st25r391x_i2c_data {
-    struct i2c_client *i2c;
-    struct st25r391x_interrupts ints;
-    dev_t chrdev;
-    struct class *st25r391x_class;
-    struct cdev cdev;
-    struct device *device;
+	struct i2c_client *i2c;
+	struct st25r391x_interrupts ints;
+	dev_t chrdev;
+	struct class *st25r391x_class;
+	struct cdev cdev;
+	struct device *device;
 	struct timer_list polling_timer;
 	struct work_struct polling_work;
 	spinlock_t producer_lock;
 	spinlock_t consumer_lock;
 	wait_queue_head_t read_wq;
 	wait_queue_head_t write_wq;
-    int read_buffer_head;
-    int read_buffer_tail;
+	int read_buffer_head;
+	int read_buffer_tail;
 	char read_buffer[CIRCULAR_BUFFER_SIZE];
-	int write_offset;   // current offset in write buffer
+	int write_offset; // current offset in write buffer
 	char write_buffer[MAX_PACKET_SIZE];
-	struct mutex command_lock;    // locks mode and params
-    unsigned opened:1;          // whether the device is opened
-    unsigned field_on:1;        // whether field is on
-	unsigned running_command:1; // whether we're currently running a command
+	struct mutex command_lock; // locks mode and params
+	unsigned opened : 1; // whether the device is opened
+	unsigned field_on : 1; // whether field is on
+	unsigned running_command : 1; // whether we're currently running a command
 	enum st25r391x_mode mode;
 	union st25r391x_mode_params mode_params;
 };
 
-void st25r391x_process_selected_tag(struct st25r391x_i2c_data *priv, const struct nfc_detected_tag_message_payload *tag_payload, u8 cid);
+void st25r391x_process_selected_tag(
+	struct st25r391x_i2c_data *priv,
+	const struct nfc_detected_tag_message_payload *tag_payload, u8 cid);
 
 #endif

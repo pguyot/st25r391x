@@ -31,18 +31,21 @@ struct st25r391x_i2c_data;
 // Common functions to interact with the ST25R391x chip.
 
 enum transceive_frame_flag {
-    transceive_frame_no_crc_tx  = 1 << 0,
-    transceive_frame_no_par_tx  = 1 << 1,
-    transceive_frame_bits       = 1 << 2,
-    transceive_frame_tx_only    = 1 << 3,
-    transceive_frame_timeout    = 1 << 4,
-    transceive_frame_no_crc_rx  = 1 << 5,
-    transceive_frame_no_par_rx  = 1 << 6,
+	transceive_frame_no_crc_tx = 1 << 0,
+	transceive_frame_no_par_tx = 1 << 1,
+	transceive_frame_bits = 1 << 2,
+	transceive_frame_tx_only = 1 << 3,
+	transceive_frame_timeout = 1 << 4,
+	transceive_frame_no_crc_rx = 1 << 5,
+	transceive_frame_no_par_rx = 1 << 6,
 };
 
-s32 st25r391x_enable_tx_and_rx(struct i2c_client* i2c);
+s32 st25r391x_enable_tx_and_rx(struct i2c_client *i2c);
 s32 st25r391x_turn_field_on(struct st25r391x_i2c_data *priv);
 s32 st25r391x_turn_field_off(struct st25r391x_i2c_data *priv);
-s32 st25r391x_transceive_frame(struct i2c_client* i2c, struct st25r391x_interrupts* ints, const u8* tx_buf, u16 tx_count, u8* rx_buf, u16 rx_buf_len, int flags, u16 rx_timeout_usec);
+s32 st25r391x_transceive_frame(struct i2c_client *i2c,
+			       struct st25r391x_interrupts *ints,
+			       const u8 *tx_buf, u16 tx_count, u8 *rx_buf,
+			       u16 rx_buf_len, int flags, u16 rx_timeout_usec);
 
 #endif

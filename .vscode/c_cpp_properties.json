@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/",
+                "${workspaceFolder}/usr/src/linux-headers-5.10.103-v7+/include",
+                "${workspaceFolder}/usr/src/linux-headers-5.10.103-v7+/arch/arm/**",
+                "${workspaceFolder}/usr/src/linux-headers-5.10.103-v7+/include/uapi"
+            ],
+            "defines": [],
+            "macFrameworkPath": [],
+            "compilerPath": "/opt/local/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-arm"
+        }
+    ],
+    "version": 4
+}

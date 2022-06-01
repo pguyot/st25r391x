@@ -26,6 +26,7 @@
 
 #include "st25r391x.h"
 
-void st25r391x_write_to_device(struct st25r391x_i2c_data *priv, const u8* data, int count);
+void st25r391x_write_to_device(struct st25r391x_i2c_data *priv, const u8 *data,
+			       int count);
 
 #endif
