@@ -1,0 +1,70 @@
+name: Checking driver compiles on various versions of raspbian/raspios
+on:
+  push:
+    branches:
+      - 'main'
+      - 'releases/**'
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [zero_raspbian, zero_raspios, zero_dietpi, zero2_raspios, zero2_dietpi, zero2_64_raspios, zero2_64_dietpi, pynab_latest]
+        include:
+        - target: zero_raspbian
+          cpu: arm1176
+          cpu_info: cpuinfo/raspberrypi_zero_w
+          base_image: raspbian_lite:latest
+        - target: zero_raspios
+          cpu: arm1176
+          cpu_info: cpuinfo/raspberrypi_zero_w
+          base_image: raspios_lite:latest
+        - target: zero_dietpi
+          cpu: arm1176
+          cpu_info: cpuinfo/raspberrypi_zero_w
+          base_image: dietpi:rpi_armv6_bullseye
+        - target: zero2_raspios
+          cpu: cortex-a7
+          cpu_info: cpuinfo/raspberrypi_zero2_w
+          base_image: raspios_lite:latest
+        - target: zero2_dietpi
+          cpu: cortex-a7
+          cpu_info: cpuinfo/raspberrypi_zero2_w
+          base_image: dietpi:rpi_armv7_bullseye
+        - target: zero2_64_raspios
+          cpu: cortex-a53
+          cpu_info: cpuinfo/raspberrypi_zero2_w_arm64
+          base_image: raspios_lite_arm64:latest
+        - target: zero2_64_dietpi
+          cpu: cortex-a53
+          cpu_info: cpuinfo/raspberrypi_zero2_w_arm64
+          base_image: dietpi:rpi_armv8_bullseye
+        - target: pynab_latest
+          cpu: arm1176
+          cpu_info: cpuinfo/raspberrypi_zero_w
+          base_image: https://github.com/nabaztag2018/pynab/releases/download/v0.9.1/pynab-v0.9.1.img.xz
+    steps:
+    - uses: actions/checkout@v2
+    - uses: pguyot/arm-runner-action@v2
+      with:
+        image_additional_mb: 1024
+        base_image: ${{ matrix.base_image }}
+        cpu: ${{ matrix.cpu }}
+        cpu_info: ${{ matrix.cpu_info }}
+        commands: |
+            kernel_version=`apt list --installed | grep raspberrypi-kernel | awk 'NR == 1 { print $2 }' | sed -e 's|1:||g'`
+            arch=`apt list --installed | grep raspberrypi-kernel | awk 'NR == 1 { print $3 }'`
+            wget -q http://archive.raspberrypi.org/debian/pool/main/r/raspberrypi-firmware/raspberrypi-kernel-headers_${kernel_version}_${arch}.deb
+            dpkg --install raspberrypi-kernel-headers_${kernel_version}_${arch}.deb
+            apt-get update -y --allow-releaseinfo-change
+            apt-get install --no-install-recommends -y libasound2-dev make gcc libc6-dev
+            for builddir in /lib/modules/*/build ; do
+                parentdir=`dirname ${builddir}`
+                kernelrelease=`basename ${parentdir}`
+                make KERNELRELEASE=${kernelrelease}
+                sudo make install KERNELRELEASE=${kernelrelease}
+                make clean KERNELRELEASE=${kernelrelease}
+            done
