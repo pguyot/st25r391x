@@ -78,8 +78,8 @@ static void restart_polling_timer(struct st25r391x_i2c_data *priv);
 
 static int st25r391x_open(struct inode *inode, struct file *file);
 static int st25r391x_release(struct inode *inode, struct file *file);
-static ssize_t st25r391x_read(struct file *file, char __user *buffer, size_t len,
-			  loff_t *offset);
+static ssize_t st25r391x_read(struct file *file, char __user *buffer,
+			      size_t len, loff_t *offset);
 static unsigned int st25r391x_poll(struct file *file, poll_table *wait);
 static long st25r391x_unlocked_ioctl(struct file *file, unsigned int,
 				     unsigned long);
@@ -420,8 +420,8 @@ static int st25r391x_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static ssize_t st25r391x_read(struct file *file, char __user *buffer, size_t len,
-			  loff_t *ppos)
+static ssize_t st25r391x_read(struct file *file, char __user *buffer,
+			      size_t len, loff_t *ppos)
 {
 	struct st25r391x_i2c_data *priv =
 		(struct st25r391x_i2c_data *)file->private_data;
@@ -614,7 +614,7 @@ static int st25r391x_write_bytes(struct st25r391x_i2c_data *priv,
 }
 
 static ssize_t st25r391x_write(struct file *file, const char __user *buffer,
-			   size_t len, loff_t *ppos)
+			       size_t len, loff_t *ppos)
 {
 	struct st25r391x_i2c_data *priv =
 		(struct st25r391x_i2c_data *)file->private_data;
@@ -697,7 +697,7 @@ static long st25r391x_unlocked_ioctl(struct file *file, unsigned int cmd,
 		uint64_t version = NFC_PROTOCOL_VERSION_1;
 		return copy_to_user((uint64_t *)arg, &version,
 				    sizeof(version)) ?
-			       -EFAULT :
+				     -EFAULT :
 				     0;
 	}
 	}
@@ -713,7 +713,7 @@ static struct file_operations st25r391x_fops = {
 	.release = st25r391x_release,
 	.poll = st25r391x_poll,
 	.unlocked_ioctl = st25r391x_unlocked_ioctl,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 	.compat_ioctl = compat_ptr_ioctl,
 #endif
 };

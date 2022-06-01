@@ -178,7 +178,8 @@ s32 st25r391x_write_bank_b_registers(struct i2c_client *i2c, u8 first_reg,
 	return result;
 }
 
-s32 st25r391x_set_register_bits(struct i2c_client *i2c, u8 reg, u8 value)
+static s32 st25r391x_set_or_clear_register_bits(struct i2c_client *i2c, u8 reg,
+						u8 value, int set)
 {
 	s32 result;
 	do {
@@ -187,18 +188,18 @@ s32 st25r391x_set_register_bits(struct i2c_client *i2c, u8 reg, u8 value)
 		if (result < 0) {
 			struct device *dev = &i2c->dev;
 			dev_err(dev,
-				"st25r391x_set_register_bits: failed to read register %.02hhXh (%d)",
+				"st25r391x_set_or_clear_register_bits: failed to read register %.02hhXh (%d)",
 				reg, result);
 			break;
 		}
 
 		result = i2c_smbus_write_byte_data(
 			i2c, reg | ST25R391X_REGISTER_WRITE_MODE,
-			result | value);
+			set ? result | value : result & ~value);
 		if (result < 0) {
 			struct device *dev = &i2c->dev;
 			dev_err(dev,
-				"st25r391x_set_register_bits: failed to write register %.02hhXh (%d)",
+				"st25r391x_set_or_clear_register_bits: failed to write register %.02hhXh (%d)",
 				reg, result);
 			break;
 		}
@@ -206,32 +207,14 @@ s32 st25r391x_set_register_bits(struct i2c_client *i2c, u8 reg, u8 value)
 	return result;
 }
 
+s32 st25r391x_set_register_bits(struct i2c_client *i2c, u8 reg, u8 value)
+{
+	return st25r391x_set_or_clear_register_bits(i2c, reg, value, 1);
+}
+
 s32 st25r391x_clear_register_bits(struct i2c_client *i2c, u8 reg, u8 value)
 {
-	s32 result;
-	do {
-		result = i2c_smbus_read_byte_data(
-			i2c, reg | ST25R391X_REGISTER_READ_MODE);
-		if (result < 0) {
-			struct device *dev = &i2c->dev;
-			dev_err(dev,
-				"st25r391x_clear_register_bits: failed to read register %.02hhXh (%d)",
-				reg, result);
-			break;
-		}
-
-		result = i2c_smbus_write_byte_data(
-			i2c, reg | ST25R391X_REGISTER_WRITE_MODE,
-			result & ~value);
-		if (result < 0) {
-			struct device *dev = &i2c->dev;
-			dev_err(dev,
-				"st25r391x_clear_register_bits: failed to write register %.02hhXh (%d)",
-				reg, result);
-			break;
-		}
-	} while (0);
-	return result;
+	return st25r391x_set_or_clear_register_bits(i2c, reg, value, 0);
 }
 
 s32 st25r391x_direct_command(struct i2c_client *i2c, u8 cmd)

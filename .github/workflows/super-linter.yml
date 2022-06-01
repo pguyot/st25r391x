@@ -1,0 +1,22 @@
+# For more information, see:
+# https://github.com/github/super-linter
+---
+name: Lint Code Base
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  run-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Lint Code Base
+        uses: github/super-linter/slim@v4
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_CPP: false
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
