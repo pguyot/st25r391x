@@ -1,4 +1,4 @@
-name: Checking driver compiles on various versions of raspbian/raspios
+name: Compile on various versions of raspbian/raspios
 on:
   push:
     branches:

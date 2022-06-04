@@ -128,7 +128,7 @@ static s32 st25r391x_nfcb_reqb_cid(struct st25r391x_i2c_data *priv,
 			break;
 		}
 
-		memcpy((void *)tag_info, (const void *)buffer + 1,
+		memcpy((void *)tag_info, (const void *)(buffer + 1),
 		       sizeof(*tag_info));
 
 		buffer[0] = ISO14443B_COMMAND_ATTRIB_HEADER;
