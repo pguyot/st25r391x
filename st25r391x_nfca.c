@@ -194,7 +194,7 @@ static s32 st25r391x_nfca_rats(struct st25r391x_i2c_data *priv,
 	if (result >= 0) {
 		if (result == buffer[0] + 2) {
 			tag_info->ats_len = buffer[0] - 1;
-			memcpy(tag_info->ats, (const void *)buffer + 1,
+			memcpy(tag_info->ats, (const void *)(buffer + 1),
 			       tag_info->ats_len);
 		} else {
 			dev_err(priv->device,
@@ -546,8 +546,6 @@ static void st25r391x_nfca_poll(struct st25r391x_i2c_data *priv, int select)
 {
 	// Passive poll NFC-A
 	struct nfc_detected_tag_message_payload tag_payload;
-	uint8_t tag_type = NFC_TAG_TYPE_ISO14443A;
-	int rats_succeeded = 0;
 	s32 result;
 
 	memset(&tag_payload, 0, sizeof(tag_payload));
@@ -557,7 +555,9 @@ static void st25r391x_nfca_poll(struct st25r391x_i2c_data *priv, int select)
 		result = st25r391x_nfca_do_select(
 			priv, &tag_payload.tag_info.iso14443a4);
 		if (result >= 0) {
-			uint8_t sak = tag_payload.tag_info.iso14443a4.sak;
+			u8 tag_type = NFC_TAG_TYPE_ISO14443A;
+			u8 sak = tag_payload.tag_info.iso14443a4.sak;
+			int rats_succeeded = 0;
 			if (sak & 0x20) {
 				result = st25r391x_nfca_rats(
 					priv, &tag_payload.tag_info.iso14443a4);

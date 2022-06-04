@@ -1,5 +1,9 @@
 # ST25R3916/7 driver for Linux (Raspbian)
 
+[![GitHub Super-Linter](https://github.com/pguyot/st25r391x/actions/workflows/super-linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
+[![ARM Runner](https://github.com/pguyot/st25r391x/actions/workflows/arm-runner.yml/badge.svg)](https://github.com/marketplace/actions/arm-runner)
+[![Codacy](https://app.codacy.com/project/badge/Grade/96d2668f5ebb4213b6dce54ba43be63f)](https://www.codacy.com/gh/pguyot/st25r391x/dashboard)
+
 ## Datasheet and technical documents
 
 - [Official documentation](https://www.st.com/en/nfc/st25r3916.html) from ST

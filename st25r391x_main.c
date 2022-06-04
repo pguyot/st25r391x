@@ -468,7 +468,7 @@ static void st25r391x_write_process_packet(struct st25r391x_i2c_data *priv,
 		((struct nfc_message_header *)priv->write_buffer)->message_type;
 	switch (message_type) {
 	case NFC_IDENTIFY_REQUEST_MESSAGE_TYPE: {
-		size_t identity_payload_len = strlen(CHIP_MODEL_IDENTITY);
+		size_t identity_payload_len = sizeof(CHIP_MODEL_IDENTITY) - 1;
 		struct nfc_message_header identity_response_header;
 		identity_response_header.message_type =
 			NFC_IDENTIFY_RESPONSE_MESSAGE_TYPE;
@@ -619,7 +619,7 @@ static ssize_t st25r391x_write(struct file *file, const char __user *buffer,
 	struct st25r391x_i2c_data *priv =
 		(struct st25r391x_i2c_data *)file->private_data;
 	int written_count = 0;
-	if (len <= 0) {
+	if (len == 0) {
 		return 0;
 	}
 	mutex_lock(&priv->command_lock);
