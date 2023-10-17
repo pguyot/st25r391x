@@ -35,7 +35,13 @@
 #include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/circ_buf.h>
-#include <stdarg.h>
+#if __has_include (<linux/stdarg.h>)
+#	include <linux/stdarg.h>
+#else
+#	include <stdarg.h>
+#endif
+
+#include <linux/version.h>
 
 #include "st25r391x.h"
 
@@ -86,7 +92,11 @@ static long st25r391x_unlocked_ioctl(struct file *file, unsigned int,
 
 static int st25r391x_i2c_probe(struct i2c_client *i2c,
 			       const struct i2c_device_id *id);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 static int st25r391x_i2c_remove(struct i2c_client *client);
+#else
+static void st25r391x_i2c_remove(struct i2c_client *client);
+#endif
 
 // ========================================================================== //
 // Polling code
@@ -856,7 +866,11 @@ static int st25r391x_i2c_probe(struct i2c_client *i2c,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 static int st25r391x_i2c_remove(struct i2c_client *client)
+#else
+static void st25r391x_i2c_remove(struct i2c_client *client)
+#endif
 {
 	struct st25r391x_i2c_data *priv;
 	priv = i2c_get_clientdata(client);
@@ -877,7 +891,9 @@ static int st25r391x_i2c_remove(struct i2c_client *client)
 	del_timer_sync(&priv->polling_timer);
 	cancel_work_sync(&priv->polling_work);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	return 0;
+#endif
 }
 
 #ifdef CONFIG_OF
