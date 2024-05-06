@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA
  */
 
-#include <linux/stdarg.h>
+#include <stdarg.h>
 
 #include "st25r391x_i2c.h"
 #include "st25r391x_commands.h"
